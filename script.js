@@ -1,3 +1,13 @@
+let spectralSensorJSONData = {
+  "temperature":0,
+  "violet":0,
+  "blue":0,
+  "green":0,
+  "yellow":0,
+  "orange":0,
+  "red":0
+};
+
 // A global variable to store the JSON string buffer
 let jsonBuffer = '';
 
@@ -9,8 +19,10 @@ async function readSerialData(port) {
     try {
       while (true) {
         const { value, done } = await reader.read();
+
         if (done) {
           // Reader has been canceled
+          console.log('Reader has been canceled');
           break;
         }
 
@@ -25,9 +37,7 @@ async function readSerialData(port) {
           
           try {
             // 3. Parse the JSON string into a JavaScript object
-            const jsonData = JSON.parse(message.trim());
-            console.log("Received JSON object:", jsonData);
-
+            spectralSensorJSONData = JSON.parse(message.trim());
             // Here is where you can use the data. For example:
             // updateUI(jsonData);
             
@@ -47,24 +57,27 @@ async function readSerialData(port) {
   }
 }
 
-const connectButton = document.getElementById('Connect');
+function sendSerialData(port, data) {
+    const textEncoder = new TextEncoder();
+    const writer = port.writable.getWriter();
+    writer.write(textEncoder.encode(data));
+    writer.releaseLock();
+}
 
-connectButton.onclick = async () => {
+ConnectSerialButton.onclick = async () => {
     try {
         const port = await navigator.serial.requestPort();
         await port.open({ baudRate: 115200 });
 
         // Call the dedicated function to handle data reading
         readSerialData(port);
+        //sendSerialData(port, 'Hello from web serial!\n');
 
     } catch (error) {
         console.error('Error opening serial port:', error);
     }
 }
 
-
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
 /*
 navigator.serial.onconnect = async (event) => {
     console.log('Serial device connected:', event);
