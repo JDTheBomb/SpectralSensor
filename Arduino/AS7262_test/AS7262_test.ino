@@ -1,19 +1,19 @@
 /***************************************************************************
-  This is a library for the Adafruit AS7262 6-Channel Visible Light Sensor
+  This is a library for the Adafruit AS7262 6-Channel Visible Light Sensor
 
-  This sketch reads the sensor
+  This sketch reads the sensor
 
-  Designed specifically to work with the Adafruit AS7262 breakout
-  ----> http://www.adafruit.com/products/3779
-  
-  These sensors use I2C to communicate. The device's I2C address is 0x49
-  Adafruit invests time and resources providing this open source code,
-  please support Adafruit andopen-source hardware by purchasing products
-  from Adafruit!
-  
-  Written by Dean Miller for Adafruit Industries.
-  BSD license, all text above must be included in any redistribution
- ***************************************************************************/
+  Designed specifically to work with the Adafruit AS7262 breakout
+  ----> http://www.adafruit.com/products/3779
+  
+  These sensors use I2C to communicate. The device's I2C address is 0x49
+  Adafruit invests time and resources providing this open source code,
+  please support Adafruit andopen-source hardware by purchasing products
+  from Adafruit!
+  
+  Written by Dean Miller for Adafruit Industries.
+  BSD license, all text above must be included in any redistribution
+ ***************************************************************************/
 
 #include <Wire.h>
 #include "Adafruit_AS726x.h"
@@ -26,15 +26,12 @@ Adafruit_AS726x ams;
 //buffer to hold raw values
 uint16_t sensorValues[AS726x_NUM_CHANNELS];
 
-//buffer to hold calibrated values (not used by default in this example)
-//float calibratedValues[AS726x_NUM_CHANNELS];
-
-StaticJsonDocument<250> doc;
+// Use a larger buffer since we're creating an array of objects
+StaticJsonDocument<500> doc;
 
 void setup() {
   Serial.begin(115200);
 
-  JsonDocument doc;
   while(!Serial);
   
   // initialize digital pin LED_BUILTIN as an output.
@@ -48,12 +45,11 @@ void setup() {
 }
 
 void loop() {
-
-  //read the device temperature
-  // Clear the document for each new reading to prevent old data from sticking around
   doc.clear();
 
-  doc["temperature"] = ams.readTemperature();
+  // Create a JsonArray to hold the color data.
+  JsonArray dataArray = doc.createNestedArray("SpectralData");
+
   ams.startMeasurement();
 
   // Wait till data is available
@@ -64,16 +60,37 @@ void loop() {
 
   // Read the values!
   ams.readRawValues(sensorValues);
+  
+  // Create and add a JSON object for each color to the array.
+  // This is the fix: create the JsonObject first and then add it.
+  JsonObject violet = dataArray.createNestedObject();
+  violet["Color"] = "Violet";
+  violet["Value"] = sensorValues[AS726x_VIOLET];
+  
+  JsonObject blue = dataArray.createNestedObject();
+  blue["Color"] = "Blue";
+  blue["Value"] = sensorValues[AS726x_BLUE];
+  
+  JsonObject green = dataArray.createNestedObject();
+  green["Color"] = "Green";
+  green["Value"] = sensorValues[AS726x_GREEN];
+  
+  JsonObject yellow = dataArray.createNestedObject();
+  yellow["Color"] = "Yellow";
+  yellow["Value"] = sensorValues[AS726x_YELLOW];
+  
+  JsonObject orange = dataArray.createNestedObject();
+  orange["Color"] = "Orange";
+  orange["Value"] = sensorValues[AS726x_ORANGE];
+  
+  JsonObject red = dataArray.createNestedObject();
+  red["Color"] = "Red";
+  red["Value"] = sensorValues[AS726x_RED];
+  
+  // Add the temperature separately if desired.
+  doc["Temperature"] = ams.readTemperature();
 
-  // Add all data to the JsonDocument
-  doc["violet"] = sensorValues[AS726x_VIOLET];
-  doc["blue"] = sensorValues[AS726x_BLUE];
-  doc["green"] = sensorValues[AS726x_GREEN];
-  doc["yellow"] = sensorValues[AS726x_YELLOW];
-  doc["orange"] = sensorValues[AS726x_ORANGE];
-  doc["red"] = sensorValues[AS726x_RED];
-
-  // Serialize the JsonDocument and print it to the serial monitor
+  // Serialize the JsonDocument and print it to the serial monitor.
   serializeJson(doc, Serial);
   Serial.println();
 }
